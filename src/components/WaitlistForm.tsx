@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Check } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const WaitlistForm = () => {
   const [email, setEmail] = useState('');
@@ -10,7 +11,7 @@ const WaitlistForm = () => {
   const [success, setSuccess] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email.trim() || !name.trim()) {
@@ -24,8 +25,33 @@ const WaitlistForm = () => {
     
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Insert the data into Supabase
+      const { error } = await supabase
+        .from('waitlist')
+        .insert([{ email, name }]);
+      
+      if (error) {
+        // Check if it's a duplicate email error
+        if (error.code === '23505') {
+          toast({
+            title: "Already subscribed",
+            description: "This email is already on our waitlist. Thanks for your enthusiasm!",
+            variant: "destructive",
+          });
+        } else {
+          console.error('Supabase error:', error);
+          toast({
+            title: "Something went wrong",
+            description: "Please try again later.",
+            variant: "destructive",
+          });
+        }
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Success
       setIsSubmitting(false);
       setSuccess(true);
       setEmail('');
@@ -40,7 +66,15 @@ const WaitlistForm = () => {
       setTimeout(() => {
         setSuccess(false);
       }, 3000);
-    }, 1500);
+    } catch (err) {
+      console.error('Error submitting to waitlist:', err);
+      setIsSubmitting(false);
+      toast({
+        title: "Error",
+        description: "Failed to join waitlist. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
