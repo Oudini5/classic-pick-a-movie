@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,8 +26,10 @@ const ChatDemo = () => {
   const [messageCount, setMessageCount] = useState(0);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [shakeInput, setShakeInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -64,6 +67,7 @@ const ChatDemo = () => {
     
     // Check if user has reached the free message limit
     if (messageCount >= MAX_FREE_MESSAGES) {
+      triggerShakeEffect();
       setShowLimitModal(true);
       return;
     }
@@ -115,6 +119,20 @@ const ChatDemo = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const triggerShakeEffect = () => {
+    setShakeInput(true);
+    setTimeout(() => setShakeInput(false), 500);
+  };
+
+  const handleInputFocus = () => {
+    if (messageCount >= MAX_FREE_MESSAGES) {
+      triggerShakeEffect();
+      setShowLimitModal(true);
+      // Remove focus from the input
+      inputRef.current?.blur();
     }
   };
 
@@ -220,11 +238,14 @@ const ChatDemo = () => {
             <form onSubmit={handleSubmit} className="border-t border-white/5 p-3">
               <div className="flex items-center gap-2">
                 <input
+                  ref={inputRef}
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
+                  onFocus={handleInputFocus}
+                  onClick={handleInputFocus}
                   placeholder="Ask for a movie recommendation..."
-                  className="w-full bg-white/5 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-cinema-red/50"
+                  className={`w-full bg-white/5 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-cinema-red/50 transition-all ${shakeInput ? 'animate-shake' : ''}`}
                   disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId}
                 />
                 <Button 
