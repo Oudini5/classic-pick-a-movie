@@ -1,12 +1,33 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useEffect } from 'react';
+import Header from '@/components/Header';
+import Hero from '@/components/Hero';
+import ChatDemo from '@/components/ChatDemo';
+import WaitlistForm from '@/components/WaitlistForm';
+import Footer from '@/components/Footer';
+import { Toaster } from '@/components/ui/sonner';
 
 const Index = () => {
+  useEffect(() => {
+    // Upload the logo to public folder
+    const logoPath = '/lovable-uploads/0b150639-d45b-4146-8a3a-b65b67bf60bd.png';
+    const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement || document.createElement('link');
+    link.rel = 'icon';
+    link.href = logoPath;
+    document.head.appendChild(link);
+  }, []);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-cinema-bg text-white relative">
+      {/* Film grain overlay */}
+      <div className="film-grain"></div>
+      
+      <Header />
+      <Hero />
+      <ChatDemo />
+      <WaitlistForm />
+      <Footer />
+      <Toaster position="top-center" />
     </div>
   );
 };
