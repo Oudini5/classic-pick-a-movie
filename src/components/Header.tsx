@@ -30,8 +30,8 @@ const Header = () => {
             </div>
           </div>
           <span className="text-xl font-bold tracking-tight hidden sm:block">
-            <span className="text-white">Classic</span>
-            <span className="text-cinema-red">Sh*t</span>
+            <span className="text-white">classic</span>
+            <span className="text-cinema-red">shit.com</span>
           </span>
         </a>
         

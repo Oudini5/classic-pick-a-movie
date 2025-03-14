@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Film } from 'lucide-react';
 
@@ -16,8 +15,8 @@ const Footer = () => {
               </div>
             </div>
             <span className="text-lg font-bold tracking-tight">
-              <span className="text-white">Classic</span>
-              <span className="text-cinema-red">Sh*t</span>
+              <span className="text-white">classic</span>
+              <span className="text-cinema-red">shit.com</span>
             </span>
           </div>
           
@@ -46,7 +45,7 @@ const Footer = () => {
         
         <div className="mt-8 pt-8 border-t border-white/5 text-center">
           <p className="text-sm text-white/50">
-            &copy; {currentYear} Classic Sh*t. All rights reserved.
+            &copy; {currentYear} classicshit.com. All rights reserved.
           </p>
         </div>
       </div>
