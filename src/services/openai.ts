@@ -18,13 +18,24 @@ interface Thread {
   created: number;
 }
 
-// Get the embedded API key
+// Function to initialize OpenAI with a provided API key
+export const initializeOpenAI = (apiKey: string): void => {
+  localStorage.setItem('openai_api_key', apiKey);
+};
+
+// Function to remove the stored API key
+export const removeApiKey = (): void => {
+  localStorage.removeItem('openai_api_key');
+};
+
+// Get the embedded API key or the one from localStorage
 export const getApiKey = (): string => {
-  return OPENAI_API_KEY;
+  const storedKey = localStorage.getItem('openai_api_key');
+  return storedKey || OPENAI_API_KEY;
 };
 
 export const hasApiKey = (): boolean => {
-  return !!OPENAI_API_KEY;
+  return !!OPENAI_API_KEY || !!localStorage.getItem('openai_api_key');
 };
 
 // Create a new thread for the conversation
@@ -34,7 +45,7 @@ export const createThread = async (): Promise<Thread> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${getApiKey()}`,
         'OpenAI-Beta': 'assistants=v1'
       },
       body: JSON.stringify({}),
@@ -59,7 +70,7 @@ export const addMessageToThread = async (threadId: string, content: string): Pro
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${getApiKey()}`,
         'OpenAI-Beta': 'assistants=v1'
       },
       body: JSON.stringify({
@@ -87,7 +98,7 @@ export const runAssistant = async (threadId: string): Promise<any> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${getApiKey()}`,
         'OpenAI-Beta': 'assistants=v1'
       },
       body: JSON.stringify({
@@ -113,7 +124,7 @@ export const checkRunStatus = async (threadId: string, runId: string): Promise<a
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${getApiKey()}`,
         'OpenAI-Beta': 'assistants=v1'
       },
     });
@@ -136,7 +147,7 @@ export const getThreadMessages = async (threadId: string): Promise<any> => {
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${getApiKey()}`,
         'OpenAI-Beta': 'assistants=v1'
       },
     });
