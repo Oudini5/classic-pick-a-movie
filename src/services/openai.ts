@@ -1,4 +1,3 @@
-
 // This is a service to handle OpenAI API calls
 // Note: In a production environment, API keys should be handled server-side
 
@@ -36,6 +35,17 @@ export const getApiKey = (): string => {
 
 export const hasApiKey = (): boolean => {
   return !!OPENAI_API_KEY || !!localStorage.getItem('openai_api_key');
+};
+
+// Helper function to replace markdown with HTML
+const formatMarkdownToHTML = (text: string): string => {
+  // Replace bold formatting
+  let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // Replace emoji markdown (keep them as is)
+  formattedText = formattedText.replace(/:\w+:/g, (match) => match);
+  
+  return formattedText;
 };
 
 // Create a new thread for the conversation
@@ -205,7 +215,10 @@ export const processUserMessage = async (threadId: string, userMessage: string):
       const assistantMessage = messagesResponse.data.find((msg: any) => msg.role === 'assistant');
       
       if (assistantMessage) {
-        const text = assistantMessage.content[0].text.value;
+        let text = assistantMessage.content[0].text.value;
+        
+        // Format the markdown in the text
+        text = formatMarkdownToHTML(text);
         
         return {
           id: assistantMessage.id,

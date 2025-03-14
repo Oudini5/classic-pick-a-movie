@@ -181,7 +181,11 @@ const ChatDemo = () => {
                             : 'bg-white/10 text-white rounded-tl-none'
                         }`}
                       >
-                        <div className="text-sm">{message.text}</div>
+                        {message.sender === 'user' ? (
+                          <div className="text-sm">{message.text}</div>
+                        ) : (
+                          <div className="text-sm" dangerouslySetInnerHTML={{ __html: message.text }} />
+                        )}
                         <div 
                           className={`text-xs mt-1 ${
                             message.sender === 'user' ? 'text-white/70' : 'text-white/50'
