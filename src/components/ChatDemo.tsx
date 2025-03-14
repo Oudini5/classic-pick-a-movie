@@ -3,11 +3,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import ApiKeyInput from '@/components/ApiKeyInput';
 import { 
-  hasApiKey, 
   createThread, 
-  processUserMessage 
+  processUserMessage,
+  hasApiKey
 } from '@/services/openai';
 
 interface Message {
@@ -26,7 +25,6 @@ const ChatDemo = () => {
   const [messageCount, setMessageCount] = useState(0);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
-  const [isApiKeySet, setIsApiKeySet] = useState(hasApiKey());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -35,10 +33,8 @@ const ChatDemo = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (isApiKeySet && !threadId) {
-      initializeThread();
-    }
-  }, [isApiKeySet]);
+    initializeThread();
+  }, []);
 
   const initializeThread = async () => {
     try {
@@ -48,10 +44,9 @@ const ChatDemo = () => {
       console.error('Failed to create thread:', error);
       toast({
         title: 'Error',
-        description: 'Failed to initialize chat. Please check your API key.',
+        description: 'Failed to initialize chat. Please try again later.',
         variant: 'destructive',
       });
-      setIsApiKeySet(false);
     }
   };
 
@@ -70,11 +65,11 @@ const ChatDemo = () => {
       return;
     }
 
-    // Check if API key is set and thread is created
-    if (!isApiKeySet || !threadId) {
+    // Check if thread is created
+    if (!threadId) {
       toast({
         title: 'Error',
-        description: 'Please set your OpenAI API key to use the chat.',
+        description: 'Chat is initializing. Please try again in a moment.',
         variant: 'destructive',
       });
       return;
@@ -103,7 +98,7 @@ const ChatDemo = () => {
       // Add an error message to the chat
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Sorry, I encountered an error. Please try again or check your API key.',
+        text: 'Sorry, I encountered an error. Please try again later.',
         sender: 'ai',
         timestamp: new Date(),
       };
@@ -135,10 +130,6 @@ const ChatDemo = () => {
     document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleApiKeySet = () => {
-    setIsApiKeySet(true);
-  };
-
   return (
     <section id="demo" className="py-20 relative overflow-hidden">
       <div className="container mx-auto">
@@ -151,12 +142,6 @@ const ChatDemo = () => {
         </div>
         
         <div className="max-w-3xl mx-auto relative">
-          {!isApiKeySet && (
-            <div className="mb-6">
-              <ApiKeyInput onApiKeySet={handleApiKeySet} />
-            </div>
-          )}
-          
           <div className="absolute -inset-0.5 bg-gradient-to-r from-cinema-red/40 to-cinema-red/20 rounded-xl blur-sm"></div>
           <div className="relative bg-cinema-darker rounded-xl shadow-xl overflow-hidden glass-card">
             <div className="border-b border-white/5 px-4 py-3 flex items-center justify-between">
@@ -227,11 +212,11 @@ const ChatDemo = () => {
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Ask for a movie recommendation..."
                   className="w-full bg-white/5 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-cinema-red/50"
-                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !isApiKeySet}
+                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId}
                 />
                 <Button 
                   type="submit" 
-                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !isApiKeySet}
+                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId}
                   className="bg-cinema-red hover:bg-cinema-red/90 text-white p-3 rounded-lg h-full"
                 >
                   <Send className="w-5 h-5" />

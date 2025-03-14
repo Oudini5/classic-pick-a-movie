@@ -2,9 +2,8 @@
 // This is a service to handle OpenAI API calls
 // Note: In a production environment, API keys should be handled server-side
 
-// WARNING: Storing API keys directly in the frontend is not recommended for production
-// For a real product, you should use a backend service or Edge Functions to handle API requests
-const OPENAI_API_KEY = ""; // Will be provided by the user at runtime
+// OpenAI configuration
+const OPENAI_API_KEY = "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";
 const OPENAI_ASSISTANT_ID = "asst_VOqraFGgtusaXpyVZVu16HjK";
 
 interface Message {
@@ -19,38 +18,23 @@ interface Thread {
   created: number;
 }
 
-export const initializeOpenAI = (apiKey: string) => {
-  if (!apiKey) {
-    throw new Error("OpenAI API key is required");
-  }
-  
-  // Store the API key in memory only (not in localStorage for security reasons)
-  // This will be lost on page refresh
-  localStorage.setItem('openai_api_key', apiKey);
-};
-
+// Get the embedded API key
 export const getApiKey = (): string => {
-  return localStorage.getItem('openai_api_key') || "";
+  return OPENAI_API_KEY;
 };
 
 export const hasApiKey = (): boolean => {
-  return !!localStorage.getItem('openai_api_key');
-};
-
-export const removeApiKey = (): void => {
-  localStorage.removeItem('openai_api_key');
+  return !!OPENAI_API_KEY;
 };
 
 // Create a new thread for the conversation
 export const createThread = async (): Promise<Thread> => {
-  const apiKey = getApiKey();
-  
   try {
     const response = await fetch('https://api.openai.com/v1/threads', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'OpenAI-Beta': 'assistants=v1'
       },
       body: JSON.stringify({}),
@@ -70,14 +54,12 @@ export const createThread = async (): Promise<Thread> => {
 
 // Add a message to the thread
 export const addMessageToThread = async (threadId: string, content: string): Promise<any> => {
-  const apiKey = getApiKey();
-  
   try {
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'OpenAI-Beta': 'assistants=v1'
       },
       body: JSON.stringify({
@@ -100,14 +82,12 @@ export const addMessageToThread = async (threadId: string, content: string): Pro
 
 // Run the assistant on the thread
 export const runAssistant = async (threadId: string): Promise<any> => {
-  const apiKey = getApiKey();
-  
   try {
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'OpenAI-Beta': 'assistants=v1'
       },
       body: JSON.stringify({
@@ -129,13 +109,11 @@ export const runAssistant = async (threadId: string): Promise<any> => {
 
 // Check the status of a run
 export const checkRunStatus = async (threadId: string, runId: string): Promise<any> => {
-  const apiKey = getApiKey();
-  
   try {
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'OpenAI-Beta': 'assistants=v1'
       },
     });
@@ -154,13 +132,11 @@ export const checkRunStatus = async (threadId: string, runId: string): Promise<a
 
 // Get all messages from a thread
 export const getThreadMessages = async (threadId: string): Promise<any> => {
-  const apiKey = getApiKey();
-  
   try {
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'OpenAI-Beta': 'assistants=v1'
       },
     });
@@ -179,7 +155,7 @@ export const getThreadMessages = async (threadId: string): Promise<any> => {
 
 // Wait for a run to complete
 export const waitForRunCompletion = async (threadId: string, runId: string): Promise<any> => {
-  const maxAttempts = 60; // Maximum number of attempts (10 minutes at 10-second intervals)
+  const maxAttempts = 60; // Maximum number of attempts (60 seconds at 1-second intervals)
   const delayMs = 1000; // Check every second
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
