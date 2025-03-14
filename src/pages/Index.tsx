@@ -6,6 +6,7 @@ import ChatDemo from '@/components/ChatDemo';
 import WaitlistForm from '@/components/WaitlistForm';
 import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/sonner';
+import { initializeOpenAI } from '@/services/openai';
 
 const Index = () => {
   useEffect(() => {

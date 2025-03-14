@@ -3,6 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import ApiKeyInput from '@/components/ApiKeyInput';
+import { 
+  hasApiKey, 
+  createThread, 
+  processUserMessage 
+} from '@/services/openai';
 
 interface Message {
   id: string;
@@ -10,14 +16,6 @@ interface Message {
   sender: 'user' | 'ai';
   timestamp: Date;
 }
-
-const SAMPLE_RESPONSES = [
-  "I recommend watching \"The Godfather\" (1972) - a classic crime drama that's considered one of the greatest films ever made.",
-  "For tonight, try \"Pulp Fiction\" (1994) - Quentin Tarantino's nonlinear masterpiece with unforgettable dialogue and characters.",
-  "\"The Shawshank Redemption\" (1994) would be perfect - a powerful story of hope and friendship with outstanding performances.",
-  "How about \"Alien\" (1979)? It's a suspenseful sci-fi horror that still holds up today with its atmospheric tension.",
-  "I suggest \"The Princess Bride\" (1987) - a charming fantasy adventure with humor, romance, and memorable quotes."
-];
 
 const MAX_FREE_MESSAGES = 3;
 
@@ -27,6 +25,8 @@ const ChatDemo = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const [isApiKeySet, setIsApiKeySet] = useState(hasApiKey());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -34,11 +34,32 @@ const ChatDemo = () => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    if (isApiKeySet && !threadId) {
+      initializeThread();
+    }
+  }, [isApiKeySet]);
+
+  const initializeThread = async () => {
+    try {
+      const thread = await createThread();
+      setThreadId(thread.id);
+    } catch (error) {
+      console.error('Failed to create thread:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to initialize chat. Please check your API key.',
+        variant: 'destructive',
+      });
+      setIsApiKeySet(false);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!inputValue.trim()) return;
@@ -46,6 +67,16 @@ const ChatDemo = () => {
     // Check if user has reached the free message limit
     if (messageCount >= MAX_FREE_MESSAGES) {
       setShowLimitModal(true);
+      return;
+    }
+
+    // Check if API key is set and thread is created
+    if (!isApiKeySet || !threadId) {
+      toast({
+        title: 'Error',
+        description: 'Please set your OpenAI API key to use the chat.',
+        variant: 'destructive',
+      });
       return;
     }
     
@@ -61,20 +92,32 @@ const ChatDemo = () => {
     setIsLoading(true);
     setMessageCount(prev => prev + 1);
     
-    // Simulate AI response with delay
-    setTimeout(() => {
-      const randomResponse = SAMPLE_RESPONSES[Math.floor(Math.random() * SAMPLE_RESPONSES.length)];
+    try {
+      // Process the user message and get the assistant's response
+      const assistantMessage = await processUserMessage(threadId, inputValue);
       
-      const aiMessage: Message = {
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error processing message:', error);
+      
+      // Add an error message to the chat
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: randomResponse,
+        text: 'Sorry, I encountered an error. Please try again or check your API key.',
         sender: 'ai',
         timestamp: new Date(),
       };
       
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages(prev => [...prev, errorMessage]);
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to get a response from the assistant.',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -92,6 +135,10 @@ const ChatDemo = () => {
     document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleApiKeySet = () => {
+    setIsApiKeySet(true);
+  };
+
   return (
     <section id="demo" className="py-20 relative overflow-hidden">
       <div className="container mx-auto">
@@ -104,6 +151,12 @@ const ChatDemo = () => {
         </div>
         
         <div className="max-w-3xl mx-auto relative">
+          {!isApiKeySet && (
+            <div className="mb-6">
+              <ApiKeyInput onApiKeySet={handleApiKeySet} />
+            </div>
+          )}
+          
           <div className="absolute -inset-0.5 bg-gradient-to-r from-cinema-red/40 to-cinema-red/20 rounded-xl blur-sm"></div>
           <div className="relative bg-cinema-darker rounded-xl shadow-xl overflow-hidden glass-card">
             <div className="border-b border-white/5 px-4 py-3 flex items-center justify-between">
@@ -174,11 +227,11 @@ const ChatDemo = () => {
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Ask for a movie recommendation..."
                   className="w-full bg-white/5 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-cinema-red/50"
-                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES}
+                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !isApiKeySet}
                 />
                 <Button 
                   type="submit" 
-                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES}
+                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !isApiKeySet}
                   className="bg-cinema-red hover:bg-cinema-red/90 text-white p-3 rounded-lg h-full"
                 >
                   <Send className="w-5 h-5" />
