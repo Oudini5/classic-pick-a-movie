@@ -42,8 +42,17 @@ const formatMarkdownToHTML = (text: string): string => {
   // Replace bold formatting
   let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   
+  // Replace italic formatting
+  formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  
   // Replace emoji markdown (keep them as is)
   formattedText = formattedText.replace(/:\w+:/g, (match) => match);
+  
+  // Remove code blocks completely
+  formattedText = formattedText.replace(/```[\s\S]*?```/g, '');
+  
+  // Replace inline code with styled span
+  formattedText = formattedText.replace(/`(.*?)`/g, '<span class="inline-code">$1</span>');
   
   return formattedText;
 };

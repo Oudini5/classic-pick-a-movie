@@ -1,8 +1,8 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   createThread, 
   processUserMessage,
@@ -26,6 +26,7 @@ const ChatDemo = () => {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -51,7 +52,9 @@ const ChatDemo = () => {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,7 +146,7 @@ const ChatDemo = () => {
         
         <div className="max-w-3xl mx-auto relative">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-cinema-red/40 to-cinema-red/20 rounded-xl blur-sm"></div>
-          <div className="relative bg-cinema-darker rounded-xl shadow-xl overflow-hidden glass-card">
+          <div className="relative bg-cinema-darker rounded-xl shadow-xl overflow-hidden glass-card flex flex-col" style={{ height: "550px" }}>
             <div className="border-b border-white/5 px-4 py-3 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full bg-cinema-red"></div>
@@ -154,7 +157,10 @@ const ChatDemo = () => {
               </div>
             </div>
             
-            <div className="p-4 h-96 overflow-y-auto mask-linear-fade">
+            <ScrollArea 
+              className="flex-1 px-4 py-4 overflow-y-auto" 
+              ref={scrollAreaRef}
+            >
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center">
                   <div className="p-3 rounded-full bg-cinema-red/10 mb-4">
@@ -182,9 +188,12 @@ const ChatDemo = () => {
                         }`}
                       >
                         {message.sender === 'user' ? (
-                          <div className="text-sm">{message.text}</div>
+                          <div className="text-sm break-words">{message.text}</div>
                         ) : (
-                          <div className="text-sm" dangerouslySetInnerHTML={{ __html: message.text }} />
+                          <div 
+                            className="text-sm break-words [&_.inline-code]:bg-white/20 [&_.inline-code]:px-1 [&_.inline-code]:py-0.5 [&_.inline-code]:rounded" 
+                            dangerouslySetInnerHTML={{ __html: message.text }} 
+                          />
                         )}
                         <div 
                           className={`text-xs mt-1 ${
@@ -206,7 +215,7 @@ const ChatDemo = () => {
                   <div ref={messagesEndRef} />
                 </div>
               )}
-            </div>
+            </ScrollArea>
             
             <form onSubmit={handleSubmit} className="border-t border-white/5 p-3">
               <div className="flex items-center gap-2">
