@@ -3,36 +3,40 @@
 
 To properly deploy this site on Netlify, you need to set up the following environment variables in your Netlify project:
 
+## Serverless Function Environment Variables
+
+For security, we've moved the OpenAI API calls to a Netlify serverless function that keeps your API key private.
+
 1. Log in to your Netlify account and navigate to your site's dashboard
 2. Go to **Site settings** > **Build & deploy** > **Environment**
 3. Click on **Edit variables** and add the following environment variables:
 
-   - `VITE_OPENAI_API_KEY`: Your OpenAI API key
-   - `VITE_OPENAI_ASSISTANT_ID`: Your OpenAI Assistant ID (asst_VOqraFGgtusaXpyVZVu16HjK)
-
-4. Save your changes
-5. Trigger a new deployment of your site by clicking **Deploy site** in the Deploys tab
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `OPENAI_ASSISTANT_ID`: Your OpenAI Assistant ID (asst_VOqraFGgtusaXpyVZVu16HjK)
 
 ## Important Notes
 
-- These environment variables are injected at build time, not run time
-- Make sure your API key has access to the Assistants API
-- Never expose your API key in client-side code or public repositories
+- The environment variables are now only used in the serverless function, not in the client-side code
+- No API keys will be exposed in the final build output
+- This setup passes Netlify's secret scanning
+- The serverless function automatically proxies requests to OpenAI without exposing your keys
 
 ## Troubleshooting Build Errors
 
-If you encounter build errors (e.g., "Build script returned non-zero exit code: 2"):
+If you encounter build errors:
 
 1. Verify that you've added both environment variables correctly in Netlify
-2. Check that the variable names are exactly `VITE_OPENAI_API_KEY` and `VITE_OPENAI_ASSISTANT_ID`
+2. Check that the variable names are exactly `OPENAI_API_KEY` and `OPENAI_ASSISTANT_ID` (not prefixed with VITE_)
 3. Ensure your API key is valid and has access to the OpenAI Assistants API
 4. Try clearing the build cache by going to **Site settings** > **Build & deploy** > **Continuous Deployment** > **Clear cache and deploy site**
 5. Check the detailed build logs in Netlify for specific error messages
+6. Verify that the "Functions" directory is being deployed correctly
 
 ## Troubleshooting Runtime Errors
 
-If the site builds but you still see the "API key not set" error:
+If the site builds but the chat doesn't work:
 
-1. Clear your browser cache or try in an incognito/private window
-2. Check the browser console for any specific error messages
-3. Verify that environment variables are being correctly injected during build
+1. Check the browser console for any specific error messages
+2. Verify that the Netlify function is being called correctly (you should see network requests to /.netlify/functions/openai-proxy)
+3. Ensure CORS is properly configured
+4. Check the Netlify function logs in the Netlify dashboard

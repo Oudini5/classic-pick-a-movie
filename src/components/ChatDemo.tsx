@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   createThread, 
   processUserMessage,
-  hasApiKey,
-  getAssistantId
+  hasApiKey
 } from '@/services/openai';
 
 interface Message {
@@ -48,14 +46,6 @@ const ChatDemo = () => {
     setInitError(null);
     
     try {
-      if (!hasApiKey()) {
-        throw new Error('Chat is unavailable. Please contact the site administrator.');
-      }
-      
-      if (!getAssistantId()) {
-        throw new Error('Chat assistant is not configured. Please contact the site administrator.');
-      }
-      
       const thread = await createThread();
       setThreadId(thread.id);
       setIsInitializing(false);
@@ -88,14 +78,12 @@ const ChatDemo = () => {
     
     if (!inputValue.trim()) return;
     
-    // Check if user has reached the free message limit
     if (messageCount >= MAX_FREE_MESSAGES) {
       triggerShakeEffect();
       setShowLimitModal(true);
       return;
     }
 
-    // Check if thread is created
     if (!threadId) {
       toast({
         title: 'Error',
@@ -118,14 +106,12 @@ const ChatDemo = () => {
     setMessageCount(prev => prev + 1);
     
     try {
-      // Process the user message and get the assistant's response
       const assistantMessage = await processUserMessage(threadId, inputValue);
       
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error processing message:', error);
       
-      // Add an error message to the chat
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: 'Sorry, I encountered an error. Please try again later.',
@@ -154,7 +140,6 @@ const ChatDemo = () => {
     if (messageCount >= MAX_FREE_MESSAGES) {
       triggerShakeEffect();
       setShowLimitModal(true);
-      // Remove focus from the input
       inputRef.current?.blur();
     }
   };
@@ -170,7 +155,6 @@ const ChatDemo = () => {
       description: "Taking you to the waitlist form",
     });
     
-    // Scroll to waitlist section
     document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -337,7 +321,6 @@ const ChatDemo = () => {
         </div>
       </div>
       
-      {/* Message Limit Modal */}
       {showLimitModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-cinema-darker max-w-md w-full rounded-xl overflow-hidden glass-card animate-scale-in">

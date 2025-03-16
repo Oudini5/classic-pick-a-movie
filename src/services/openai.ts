@@ -1,48 +1,5 @@
-
-// This is a service to handle OpenAI API calls
-// Environment variables are set in Netlify and loaded in index.html
-
-// Get the API key from environment variables
-export const getApiKey = (): string => {
-  try {
-    // @ts-ignore - window.__OPENAI_API_KEY is set in index.html
-    const apiKey = window.__OPENAI_API_KEY || '';
-    
-    // If it still contains the placeholder or is empty, return empty string
-    if (apiKey === '%VITE_OPENAI_API_KEY%' || !apiKey) {
-      console.error('OpenAI API key environment variable was not properly set during build');
-      return '';
-    }
-    
-    return apiKey;
-  } catch (error) {
-    console.error('Error accessing OpenAI API key:', error);
-    return '';
-  }
-};
-
-// Get the assistant ID from environment variables
-export const getAssistantId = (): string => {
-  try {
-    // @ts-ignore - window.__OPENAI_ASSISTANT_ID is set in index.html
-    const assistantId = window.__OPENAI_ASSISTANT_ID || '';
-    
-    // If it still contains the placeholder or is empty, return empty string
-    if (assistantId === '%VITE_OPENAI_ASSISTANT_ID%' || !assistantId) {
-      console.error('OpenAI Assistant ID environment variable was not properly set during build');
-      return '';
-    }
-    
-    return assistantId;
-  } catch (error) {
-    console.error('Error accessing OpenAI Assistant ID:', error);
-    return '';
-  }
-};
-
-export const hasApiKey = (): boolean => {
-  return !!getApiKey();
-};
+// This file now uses a Netlify function proxy for OpenAI API calls
+// No API keys are stored or used in the client code
 
 // Helper function to replace markdown with HTML
 const formatMarkdownToHTML = (text: string): string => {
@@ -64,30 +21,37 @@ const formatMarkdownToHTML = (text: string): string => {
   return formattedText;
 };
 
-// Create a new thread for the conversation
-export const createThread = async (): Promise<any> => {
+// Function to call our Netlify serverless function
+const callOpenAIProxy = async (endpoint: string, method: string = 'POST', payload?: any): Promise<any> => {
   try {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      throw new Error('OpenAI API key is not set in environment variables.');
-    }
-
-    const response = await fetch('https://api.openai.com/v1/threads', {
+    const response = await fetch('/api/openai-proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'OpenAI-Beta': 'assistants=v2'
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        endpoint,
+        method,
+        payload,
+      }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`Failed to create thread: ${errorData.error?.message || response.statusText}`);
+      throw new Error(`API error: ${errorData.error || response.statusText}`);
     }
 
     return await response.json();
+  } catch (error) {
+    console.error('Error calling OpenAI proxy:', error);
+    throw error;
+  }
+};
+
+// Create a new thread for the conversation
+export const createThread = async (): Promise<any> => {
+  try {
+    return await callOpenAIProxy('threads');
   } catch (error) {
     console.error('Error creating thread:', error);
     throw error;
@@ -97,30 +61,10 @@ export const createThread = async (): Promise<any> => {
 // Add a message to the thread
 export const addMessageToThread = async (threadId: string, content: string): Promise<any> => {
   try {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      throw new Error('OpenAI API key is not set');
-    }
-
-    const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'OpenAI-Beta': 'assistants=v2'
-      },
-      body: JSON.stringify({
-        role: 'user',
-        content,
-      }),
+    return await callOpenAIProxy(`threads/${threadId}/messages`, 'POST', {
+      role: 'user',
+      content,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Failed to add message: ${errorData.error?.message || response.statusText}`);
-    }
-
-    return await response.json();
   } catch (error) {
     console.error('Error adding message to thread:', error);
     throw error;
@@ -130,35 +74,9 @@ export const addMessageToThread = async (threadId: string, content: string): Pro
 // Run the assistant on the thread
 export const runAssistant = async (threadId: string): Promise<any> => {
   try {
-    const apiKey = getApiKey();
-    const assistantId = getAssistantId();
-    
-    if (!apiKey) {
-      throw new Error('OpenAI API key is not set');
-    }
-    
-    if (!assistantId) {
-      throw new Error('OpenAI Assistant ID is not set');
-    }
-
-    const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'OpenAI-Beta': 'assistants=v2'
-      },
-      body: JSON.stringify({
-        assistant_id: assistantId,
-      }),
+    return await callOpenAIProxy(`threads/${threadId}/runs`, 'POST', {
+      assistant_id: '{assistant_id}', // This will be replaced in the serverless function
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Failed to run assistant: ${errorData.error?.message || response.statusText}`);
-    }
-
-    return await response.json();
   } catch (error) {
     console.error('Error running assistant:', error);
     throw error;
@@ -168,25 +86,7 @@ export const runAssistant = async (threadId: string): Promise<any> => {
 // Check the status of a run
 export const checkRunStatus = async (threadId: string, runId: string): Promise<any> => {
   try {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      throw new Error('OpenAI API key is not set');
-    }
-
-    const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'OpenAI-Beta': 'assistants=v2'
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Failed to check run status: ${errorData.error?.message || response.statusText}`);
-    }
-
-    return await response.json();
+    return await callOpenAIProxy(`threads/${threadId}/runs/${runId}`, 'GET');
   } catch (error) {
     console.error('Error checking run status:', error);
     throw error;
@@ -196,25 +96,7 @@ export const checkRunStatus = async (threadId: string, runId: string): Promise<a
 // Get all messages from a thread
 export const getThreadMessages = async (threadId: string): Promise<any> => {
   try {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      throw new Error('OpenAI API key is not set');
-    }
-
-    const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'OpenAI-Beta': 'assistants=v2'
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Failed to get messages: ${errorData.error?.message || response.statusText}`);
-    }
-
-    return await response.json();
+    return await callOpenAIProxy(`threads/${threadId}/messages`, 'GET');
   } catch (error) {
     console.error('Error getting thread messages:', error);
     throw error;
@@ -289,3 +171,6 @@ export const processUserMessage = async (threadId: string, userMessage: string):
     throw error;
   }
 };
+
+// Remove functions that accessed env vars directly
+export const hasApiKey = (): boolean => true; // Always return true since we're using a server

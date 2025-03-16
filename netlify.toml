@@ -1,0 +1,24 @@
+
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+[build.environment]
+  # Do NOT add secrets here - they should be set in Netlify UI
+  NODE_VERSION = "18"
+
+[dev]
+  command = "npm run dev"
+  port = 8888
+  targetPort = 8080
+  framework = "#custom"
