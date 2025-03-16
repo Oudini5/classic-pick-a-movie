@@ -12,7 +12,7 @@ For security, we've moved the OpenAI API calls to a Netlify serverless function 
 3. Click on **Edit variables** and add the following environment variables:
 
    - `OPENAI_API_KEY`: Your OpenAI API key
-   - `OPENAI_ASSISTANT_ID`: Your OpenAI Assistant ID (asst_VOqraFGgtusaXpyVZVu16HjK)
+   - `OPENAI_ASSISTANT_ID`: Your OpenAI Assistant ID (format: asst_xxxxxxxxxxxxxxxxxxxxxxxx)
 
 ## Important Notes
 
