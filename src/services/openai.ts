@@ -4,29 +4,40 @@
 
 // Get the API key from environment variables
 export const getApiKey = (): string => {
-  // Get API key from the window object (set by environment variables)
-  // @ts-ignore - window.__OPENAI_API_KEY is set in index.html
-  const apiKey = window.__OPENAI_API_KEY || '';
-  
-  // If it still contains the placeholder, it means it wasn't replaced during build
-  if (apiKey === '%VITE_OPENAI_API_KEY%') {
+  try {
+    // @ts-ignore - window.__OPENAI_API_KEY is set in index.html
+    const apiKey = window.__OPENAI_API_KEY || '';
+    
+    // If it still contains the placeholder or is empty, return empty string
+    if (apiKey === '%VITE_OPENAI_API_KEY%' || !apiKey) {
+      console.error('OpenAI API key environment variable was not properly set during build');
+      return '';
+    }
+    
+    return apiKey;
+  } catch (error) {
+    console.error('Error accessing OpenAI API key:', error);
     return '';
   }
-  
-  return apiKey;
 };
 
 // Get the assistant ID from environment variables
 export const getAssistantId = (): string => {
-  // @ts-ignore - window.__OPENAI_ASSISTANT_ID is set in index.html
-  const assistantId = window.__OPENAI_ASSISTANT_ID || '';
-  
-  // If it still contains the placeholder, it means it wasn't replaced during build
-  if (assistantId === '%VITE_OPENAI_ASSISTANT_ID%') {
+  try {
+    // @ts-ignore - window.__OPENAI_ASSISTANT_ID is set in index.html
+    const assistantId = window.__OPENAI_ASSISTANT_ID || '';
+    
+    // If it still contains the placeholder or is empty, return empty string
+    if (assistantId === '%VITE_OPENAI_ASSISTANT_ID%' || !assistantId) {
+      console.error('OpenAI Assistant ID environment variable was not properly set during build');
+      return '';
+    }
+    
+    return assistantId;
+  } catch (error) {
+    console.error('Error accessing OpenAI Assistant ID:', error);
     return '';
   }
-  
-  return assistantId;
 };
 
 export const hasApiKey = (): boolean => {

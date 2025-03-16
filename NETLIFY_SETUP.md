@@ -11,7 +11,7 @@ To properly deploy this site on Netlify, you need to set up the following enviro
    - `VITE_OPENAI_ASSISTANT_ID`: Your OpenAI Assistant ID (asst_VOqraFGgtusaXpyVZVu16HjK)
 
 4. Save your changes
-5. Trigger a new deployment of your site
+5. Trigger a new deployment of your site by clicking **Deploy site** in the Deploys tab
 
 ## Important Notes
 
@@ -19,11 +19,20 @@ To properly deploy this site on Netlify, you need to set up the following enviro
 - Make sure your API key has access to the Assistants API
 - Never expose your API key in client-side code or public repositories
 
-## Troubleshooting
+## Troubleshooting Build Errors
 
-If you encounter the "API key not set" error after setting up the environment variables:
+If you encounter build errors (e.g., "Build script returned non-zero exit code: 2"):
 
-1. Verify that you've added the environment variables correctly in Netlify
-2. Make sure you've triggered a new deployment after adding the variables
-3. Clear your browser cache or try in an incognito/private window
-4. Check the browser console for any specific error messages
+1. Verify that you've added both environment variables correctly in Netlify
+2. Check that the variable names are exactly `VITE_OPENAI_API_KEY` and `VITE_OPENAI_ASSISTANT_ID`
+3. Ensure your API key is valid and has access to the OpenAI Assistants API
+4. Try clearing the build cache by going to **Site settings** > **Build & deploy** > **Continuous Deployment** > **Clear cache and deploy site**
+5. Check the detailed build logs in Netlify for specific error messages
+
+## Troubleshooting Runtime Errors
+
+If the site builds but you still see the "API key not set" error:
+
+1. Clear your browser cache or try in an incognito/private window
+2. Check the browser console for any specific error messages
+3. Verify that environment variables are being correctly injected during build

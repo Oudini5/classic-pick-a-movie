@@ -13,9 +13,20 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
     <!-- Environment variables will be replaced at build time by Vite -->
     <script>
-      // These will be replaced by actual values during the build process
-      window.__OPENAI_API_KEY = '%VITE_OPENAI_API_KEY%';
-      window.__OPENAI_ASSISTANT_ID = '%VITE_OPENAI_ASSISTANT_ID%';
+      // These environment variables will be replaced during the build process
+      window.__OPENAI_API_KEY = "%VITE_OPENAI_API_KEY%";
+      window.__OPENAI_ASSISTANT_ID = "%VITE_OPENAI_ASSISTANT_ID%";
+      
+      // Check if the variables were properly replaced
+      if (window.__OPENAI_API_KEY === "%VITE_OPENAI_API_KEY%") {
+        console.error("Environment variable VITE_OPENAI_API_KEY was not replaced during build");
+        window.__OPENAI_API_KEY = "";
+      }
+      
+      if (window.__OPENAI_ASSISTANT_ID === "%VITE_OPENAI_ASSISTANT_ID%") {
+        console.error("Environment variable VITE_OPENAI_ASSISTANT_ID was not replaced during build");
+        window.__OPENAI_ASSISTANT_ID = "";
+      }
     </script>
   </head>
 
