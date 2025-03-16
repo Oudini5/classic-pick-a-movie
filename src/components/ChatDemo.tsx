@@ -49,11 +49,11 @@ const ChatDemo = () => {
     
     try {
       if (!hasApiKey()) {
-        throw new Error('OpenAI API key is not configured. Please contact the site administrator.');
+        throw new Error('Chat is unavailable. Please contact the site administrator.');
       }
       
       if (!getAssistantId()) {
-        throw new Error('OpenAI Assistant ID is not configured. Please contact the site administrator.');
+        throw new Error('Chat assistant is not configured. Please contact the site administrator.');
       }
       
       const thread = await createThread();

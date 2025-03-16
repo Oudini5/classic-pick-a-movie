@@ -1,17 +1,32 @@
+
 // This is a service to handle OpenAI API calls
-// Environment variables are set in GitHub and loaded in index.html
+// Environment variables are set in Netlify and loaded in index.html
 
 // Get the API key from environment variables
 export const getApiKey = (): string => {
   // Get API key from the window object (set by environment variables)
   // @ts-ignore - window.__OPENAI_API_KEY is set in index.html
-  return window.__OPENAI_API_KEY || '';
+  const apiKey = window.__OPENAI_API_KEY || '';
+  
+  // If it still contains the placeholder, it means it wasn't replaced during build
+  if (apiKey === '%VITE_OPENAI_API_KEY%') {
+    return '';
+  }
+  
+  return apiKey;
 };
 
 // Get the assistant ID from environment variables
 export const getAssistantId = (): string => {
   // @ts-ignore - window.__OPENAI_ASSISTANT_ID is set in index.html
-  return window.__OPENAI_ASSISTANT_ID || '';
+  const assistantId = window.__OPENAI_ASSISTANT_ID || '';
+  
+  // If it still contains the placeholder, it means it wasn't replaced during build
+  if (assistantId === '%VITE_OPENAI_ASSISTANT_ID%') {
+    return '';
+  }
+  
+  return assistantId;
 };
 
 export const hasApiKey = (): boolean => {
