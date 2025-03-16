@@ -4,7 +4,6 @@ import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import ApiKeyInput from '@/components/ApiKeyInput';
 import { 
   createThread, 
   processUserMessage,
@@ -29,7 +28,8 @@ const ChatDemo = () => {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [shakeInput, setShakeInput] = useState(false);
-  const [needsApiKey, setNeedsApiKey] = useState(!hasApiKey());
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,36 +40,40 @@ const ChatDemo = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (hasApiKey() && getAssistantId()) {
-      initializeThread();
-    } else {
-      setNeedsApiKey(true);
-    }
+    initializeThread();
   }, []);
 
   const initializeThread = async () => {
+    setIsInitializing(true);
+    setInitError(null);
+    
     try {
+      if (!hasApiKey()) {
+        throw new Error('OpenAI API key is not configured. Please contact the site administrator.');
+      }
+      
+      if (!getAssistantId()) {
+        throw new Error('OpenAI Assistant ID is not configured. Please contact the site administrator.');
+      }
+      
       const thread = await createThread();
       setThreadId(thread.id);
-      setNeedsApiKey(false);
+      setIsInitializing(false);
     } catch (error) {
       console.error('Failed to create thread:', error);
-      // Check if it's an API key issue
-      if (error instanceof Error && error.message.includes('API key')) {
-        setNeedsApiKey(true);
-      } else if (error instanceof Error && error.message.includes('Assistant ID')) {
-        toast({
-          title: 'Error',
-          description: 'OpenAI Assistant ID is not configured. Please check your environment variables.',
-          variant: 'destructive',
-        });
+      setIsInitializing(false);
+      
+      if (error instanceof Error) {
+        setInitError(error.message);
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to initialize chat. Please try again later.',
-          variant: 'destructive',
-        });
+        setInitError('Failed to initialize chat. Please try again later.');
       }
+      
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to initialize chat',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -141,10 +145,6 @@ const ChatDemo = () => {
     }
   };
 
-  const handleApiKeySet = () => {
-    initializeThread();
-  };
-
   const triggerShakeEffect = () => {
     setShakeInput(true);
     setTimeout(() => setShakeInput(false), 500);
@@ -174,6 +174,48 @@ const ChatDemo = () => {
     document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const renderInitializationState = () => {
+    if (isInitializing) {
+      return (
+        <div className="flex-1 p-6 flex flex-col items-center justify-center">
+          <div className="w-full max-w-md text-center">
+            <Loader2 className="w-10 h-10 text-cinema-red mx-auto mb-4 animate-spin" />
+            <h3 className="text-xl font-bold mb-2">Initializing Chat</h3>
+            <p className="text-white/70">
+              Please wait while we connect to the AI assistant...
+            </p>
+          </div>
+        </div>
+      );
+    }
+    
+    if (initError) {
+      return (
+        <div className="flex-1 p-6 flex flex-col items-center justify-center">
+          <div className="w-full max-w-md text-center">
+            <div className="w-12 h-12 rounded-full bg-cinema-red/20 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-cinema-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2">Connection Error</h3>
+            <p className="text-white/70 mb-4">
+              {initError}
+            </p>
+            <Button 
+              onClick={initializeThread}
+              className="bg-cinema-red hover:bg-cinema-red/90"
+            >
+              Retry Connection
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
   return (
     <section id="demo" className="py-20 relative overflow-hidden">
       <div className="container mx-auto">
@@ -198,16 +240,8 @@ const ChatDemo = () => {
               </div>
             </div>
             
-            {needsApiKey ? (
-              <div className="flex-1 p-6 flex flex-col items-center justify-center">
-                <div className="w-full max-w-md">
-                  <h3 className="text-xl font-bold mb-4 text-center">API Key Required</h3>
-                  <p className="text-white/70 mb-6 text-center">
-                    To use the AI Movie Picker, you need to provide your OpenAI API key.
-                  </p>
-                  <ApiKeyInput onApiKeySet={handleApiKeySet} />
-                </div>
-              </div>
+            {isInitializing || initError ? (
+              renderInitializationState()
             ) : (
               <ScrollArea 
                 className="flex-1 px-4 py-4 overflow-y-auto" 
@@ -281,11 +315,11 @@ const ChatDemo = () => {
                   onClick={handleInputFocus}
                   placeholder="Ask for a movie recommendation..."
                   className={`w-full bg-white/5 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-cinema-red/50 transition-all ${shakeInput ? 'animate-shake' : ''}`}
-                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || needsApiKey}
+                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || isInitializing || !!initError}
                 />
                 <Button 
                   type="submit" 
-                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || needsApiKey}
+                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || isInitializing || !!initError}
                   className="bg-cinema-red hover:bg-cinema-red/90 text-white p-3 rounded-lg h-full"
                 >
                   <Send className="w-5 h-5" />

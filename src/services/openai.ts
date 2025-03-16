@@ -1,23 +1,9 @@
 // This is a service to handle OpenAI API calls
-// Note: In a production environment, API keys should be handled server-side
+// Environment variables are set in GitHub and loaded in index.html
 
-// Function to initialize OpenAI with a provided API key
-export const initializeOpenAI = (apiKey: string): void => {
-  localStorage.setItem('openai_api_key', apiKey);
-};
-
-// Function to remove the stored API key
-export const removeApiKey = (): void => {
-  localStorage.removeItem('openai_api_key');
-};
-
-// Get the API key from environment variables or localStorage
+// Get the API key from environment variables
 export const getApiKey = (): string => {
-  // First check if we have a key in localStorage (user provided)
-  const storedKey = localStorage.getItem('openai_api_key');
-  if (storedKey) return storedKey;
-  
-  // Otherwise, try to get it from the window object (set by environment variables)
+  // Get API key from the window object (set by environment variables)
   // @ts-ignore - window.__OPENAI_API_KEY is set in index.html
   return window.__OPENAI_API_KEY || '';
 };
@@ -57,7 +43,7 @@ export const createThread = async (): Promise<any> => {
   try {
     const apiKey = getApiKey();
     if (!apiKey) {
-      throw new Error('OpenAI API key is not set. Please set it in the settings.');
+      throw new Error('OpenAI API key is not set in environment variables.');
     }
 
     const response = await fetch('https://api.openai.com/v1/threads', {
