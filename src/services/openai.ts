@@ -1,22 +1,6 @@
 // This is a service to handle OpenAI API calls
 // Note: In a production environment, API keys should be handled server-side
 
-// OpenAI configuration
-const OPENAI_API_KEY = "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";
-const OPENAI_ASSISTANT_ID = "asst_VOqraFGgtusaXpyVZVu16HjK";
-
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
-}
-
-interface Thread {
-  id: string;
-  created: number;
-}
-
 // Function to initialize OpenAI with a provided API key
 export const initializeOpenAI = (apiKey: string): void => {
   localStorage.setItem('openai_api_key', apiKey);
@@ -27,14 +11,25 @@ export const removeApiKey = (): void => {
   localStorage.removeItem('openai_api_key');
 };
 
-// Get the embedded API key or the one from localStorage
+// Get the API key from environment variables or localStorage
 export const getApiKey = (): string => {
+  // First check if we have a key in localStorage (user provided)
   const storedKey = localStorage.getItem('openai_api_key');
-  return storedKey || OPENAI_API_KEY;
+  if (storedKey) return storedKey;
+  
+  // Otherwise, try to get it from the window object (set by environment variables)
+  // @ts-ignore - window.__OPENAI_API_KEY is set in index.html
+  return window.__OPENAI_API_KEY || '';
+};
+
+// Get the assistant ID from environment variables
+export const getAssistantId = (): string => {
+  // @ts-ignore - window.__OPENAI_ASSISTANT_ID is set in index.html
+  return window.__OPENAI_ASSISTANT_ID || '';
 };
 
 export const hasApiKey = (): boolean => {
-  return !!OPENAI_API_KEY || !!localStorage.getItem('openai_api_key');
+  return !!getApiKey();
 };
 
 // Helper function to replace markdown with HTML
@@ -58,13 +53,18 @@ const formatMarkdownToHTML = (text: string): string => {
 };
 
 // Create a new thread for the conversation
-export const createThread = async (): Promise<Thread> => {
+export const createThread = async (): Promise<any> => {
   try {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      throw new Error('OpenAI API key is not set. Please set it in the settings.');
+    }
+
     const response = await fetch('https://api.openai.com/v1/threads', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getApiKey()}`,
+        'Authorization': `Bearer ${apiKey}`,
         'OpenAI-Beta': 'assistants=v2'
       },
       body: JSON.stringify({}),
@@ -85,11 +85,16 @@ export const createThread = async (): Promise<Thread> => {
 // Add a message to the thread
 export const addMessageToThread = async (threadId: string, content: string): Promise<any> => {
   try {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      throw new Error('OpenAI API key is not set');
+    }
+
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getApiKey()}`,
+        'Authorization': `Bearer ${apiKey}`,
         'OpenAI-Beta': 'assistants=v2'
       },
       body: JSON.stringify({
@@ -113,15 +118,26 @@ export const addMessageToThread = async (threadId: string, content: string): Pro
 // Run the assistant on the thread
 export const runAssistant = async (threadId: string): Promise<any> => {
   try {
+    const apiKey = getApiKey();
+    const assistantId = getAssistantId();
+    
+    if (!apiKey) {
+      throw new Error('OpenAI API key is not set');
+    }
+    
+    if (!assistantId) {
+      throw new Error('OpenAI Assistant ID is not set');
+    }
+
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getApiKey()}`,
+        'Authorization': `Bearer ${apiKey}`,
         'OpenAI-Beta': 'assistants=v2'
       },
       body: JSON.stringify({
-        assistant_id: OPENAI_ASSISTANT_ID,
+        assistant_id: assistantId,
       }),
     });
 
@@ -140,10 +156,15 @@ export const runAssistant = async (threadId: string): Promise<any> => {
 // Check the status of a run
 export const checkRunStatus = async (threadId: string, runId: string): Promise<any> => {
   try {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      throw new Error('OpenAI API key is not set');
+    }
+
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${runId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${getApiKey()}`,
+        'Authorization': `Bearer ${apiKey}`,
         'OpenAI-Beta': 'assistants=v2'
       },
     });
@@ -163,10 +184,15 @@ export const checkRunStatus = async (threadId: string, runId: string): Promise<a
 // Get all messages from a thread
 export const getThreadMessages = async (threadId: string): Promise<any> => {
   try {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      throw new Error('OpenAI API key is not set');
+    }
+
     const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${getApiKey()}`,
+        'Authorization': `Bearer ${apiKey}`,
         'OpenAI-Beta': 'assistants=v2'
       },
     });
@@ -203,6 +229,13 @@ export const waitForRunCompletion = async (threadId: string, runId: string): Pro
   
   throw new Error('Run timed out');
 };
+
+interface Message {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+}
 
 // Process a user message and get the assistant's response
 export const processUserMessage = async (threadId: string, userMessage: string): Promise<Message> => {

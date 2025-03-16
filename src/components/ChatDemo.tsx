@@ -4,10 +4,12 @@ import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import ApiKeyInput from '@/components/ApiKeyInput';
 import { 
   createThread, 
   processUserMessage,
-  hasApiKey
+  hasApiKey,
+  getAssistantId
 } from '@/services/openai';
 
 interface Message {
@@ -27,6 +29,7 @@ const ChatDemo = () => {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [shakeInput, setShakeInput] = useState(false);
+  const [needsApiKey, setNeedsApiKey] = useState(!hasApiKey());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,20 +40,36 @@ const ChatDemo = () => {
   }, [messages]);
 
   useEffect(() => {
-    initializeThread();
+    if (hasApiKey() && getAssistantId()) {
+      initializeThread();
+    } else {
+      setNeedsApiKey(true);
+    }
   }, []);
 
   const initializeThread = async () => {
     try {
       const thread = await createThread();
       setThreadId(thread.id);
+      setNeedsApiKey(false);
     } catch (error) {
       console.error('Failed to create thread:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to initialize chat. Please try again later.',
-        variant: 'destructive',
-      });
+      // Check if it's an API key issue
+      if (error instanceof Error && error.message.includes('API key')) {
+        setNeedsApiKey(true);
+      } else if (error instanceof Error && error.message.includes('Assistant ID')) {
+        toast({
+          title: 'Error',
+          description: 'OpenAI Assistant ID is not configured. Please check your environment variables.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to initialize chat. Please try again later.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -122,6 +141,10 @@ const ChatDemo = () => {
     }
   };
 
+  const handleApiKeySet = () => {
+    initializeThread();
+  };
+
   const triggerShakeEffect = () => {
     setShakeInput(true);
     setTimeout(() => setShakeInput(false), 500);
@@ -175,65 +198,77 @@ const ChatDemo = () => {
               </div>
             </div>
             
-            <ScrollArea 
-              className="flex-1 px-4 py-4 overflow-y-auto" 
-              ref={scrollAreaRef}
-            >
-              {messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center">
-                  <div className="p-3 rounded-full bg-cinema-red/10 mb-4">
-                    <svg className="w-6 h-6 text-cinema-red" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-lg font-medium mb-2">Ask for movie recommendations</h4>
-                  <p className="text-white/60 max-w-md">
-                    Try "Suggest a classic thriller" or "What comedy should I watch tonight?"
+            {needsApiKey ? (
+              <div className="flex-1 p-6 flex flex-col items-center justify-center">
+                <div className="w-full max-w-md">
+                  <h3 className="text-xl font-bold mb-4 text-center">API Key Required</h3>
+                  <p className="text-white/70 mb-6 text-center">
+                    To use the AI Movie Picker, you need to provide your OpenAI API key.
                   </p>
+                  <ApiKeyInput onApiKeySet={handleApiKeySet} />
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div 
-                        className={`max-w-[80%] px-4 py-3 rounded-2xl ${
-                          message.sender === 'user' 
-                            ? 'bg-cinema-red text-white rounded-tr-none' 
-                            : 'bg-white/10 text-white rounded-tl-none'
-                        }`}
+              </div>
+            ) : (
+              <ScrollArea 
+                className="flex-1 px-4 py-4 overflow-y-auto" 
+                ref={scrollAreaRef}
+              >
+                {messages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center">
+                    <div className="p-3 rounded-full bg-cinema-red/10 mb-4">
+                      <svg className="w-6 h-6 text-cinema-red" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-lg font-medium mb-2">Ask for movie recommendations</h4>
+                    <p className="text-white/60 max-w-md">
+                      Try "Suggest a classic thriller" or "What comedy should I watch tonight?"
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
-                        {message.sender === 'user' ? (
-                          <div className="text-sm break-words">{message.text}</div>
-                        ) : (
-                          <div 
-                            className="text-sm break-words [&_.inline-code]:bg-white/20 [&_.inline-code]:px-1 [&_.inline-code]:py-0.5 [&_.inline-code]:rounded" 
-                            dangerouslySetInnerHTML={{ __html: message.text }} 
-                          />
-                        )}
                         <div 
-                          className={`text-xs mt-1 ${
-                            message.sender === 'user' ? 'text-white/70' : 'text-white/50'
+                          className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                            message.sender === 'user' 
+                              ? 'bg-cinema-red text-white rounded-tr-none' 
+                              : 'bg-white/10 text-white rounded-tl-none'
                           }`}
                         >
-                          {formatTime(message.timestamp)}
+                          {message.sender === 'user' ? (
+                            <div className="text-sm break-words">{message.text}</div>
+                          ) : (
+                            <div 
+                              className="text-sm break-words [&_.inline-code]:bg-white/20 [&_.inline-code]:px-1 [&_.inline-code]:py-0.5 [&_.inline-code]:rounded" 
+                              dangerouslySetInnerHTML={{ __html: message.text }} 
+                            />
+                          )}
+                          <div 
+                            className={`text-xs mt-1 ${
+                              message.sender === 'user' ? 'text-white/70' : 'text-white/50'
+                            }`}
+                          >
+                            {formatTime(message.timestamp)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-white/10 rounded-2xl rounded-tl-none px-4 py-3">
-                        <Loader2 className="w-5 h-5 animate-spin text-white/70" />
+                    ))}
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-white/10 rounded-2xl rounded-tl-none px-4 py-3">
+                          <Loader2 className="w-5 h-5 animate-spin text-white/70" />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
-            </ScrollArea>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </ScrollArea>
+            )}
             
             <form onSubmit={handleSubmit} className="border-t border-white/5 p-3">
               <div className="flex items-center gap-2">
@@ -246,11 +281,11 @@ const ChatDemo = () => {
                   onClick={handleInputFocus}
                   placeholder="Ask for a movie recommendation..."
                   className={`w-full bg-white/5 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-cinema-red/50 transition-all ${shakeInput ? 'animate-shake' : ''}`}
-                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId}
+                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || needsApiKey}
                 />
                 <Button 
                   type="submit" 
-                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId}
+                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || needsApiKey}
                   className="bg-cinema-red hover:bg-cinema-red/90 text-white p-3 rounded-lg h-full"
                 >
                   <Send className="w-5 h-5" />

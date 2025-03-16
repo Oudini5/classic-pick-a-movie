@@ -11,6 +11,20 @@
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#000000" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
+    <!-- Load environment variables from GitHub -->
+    <script>
+      // This script safely loads environment variables
+      window.__OPENAI_API_KEY = '%VITE_OPENAI_API_KEY%';
+      window.__OPENAI_ASSISTANT_ID = '%VITE_OPENAI_ASSISTANT_ID%';
+      
+      // Replace placeholders with empty strings if they weren't replaced during build
+      if (window.__OPENAI_API_KEY.includes('VITE_OPENAI_API_KEY')) {
+        window.__OPENAI_API_KEY = '';
+      }
+      if (window.__OPENAI_ASSISTANT_ID.includes('VITE_OPENAI_ASSISTANT_ID')) {
+        window.__OPENAI_ASSISTANT_ID = '';
+      }
+    </script>
   </head>
 
   <body>
