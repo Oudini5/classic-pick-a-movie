@@ -1,3 +1,4 @@
+
 // This file now uses a Netlify function proxy for OpenAI API calls
 // No API keys are stored or used in the client code
 
@@ -24,7 +25,10 @@ const formatMarkdownToHTML = (text: string): string => {
 // Function to call our Netlify serverless function
 const callOpenAIProxy = async (endpoint: string, method: string = 'POST', payload?: any): Promise<any> => {
   try {
-    const response = await fetch('/api/openai-proxy', {
+    const apiUrl = `/.netlify/functions/openai-proxy`;
+    console.log(`Making API request to: ${apiUrl} for endpoint: ${endpoint}`);
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,11 +41,25 @@ const callOpenAIProxy = async (endpoint: string, method: string = 'POST', payloa
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`API error: ${errorData.error || response.statusText}`);
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { error: errorText || 'Unknown error occurred' };
+      }
+      console.error(`API error (${response.status}):`, errorData);
+      throw new Error(`API error (${response.status}): ${errorData.error || response.statusText}`);
     }
 
-    return await response.json();
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    } else {
+      const text = await response.text();
+      console.error('Response is not JSON:', text);
+      throw new Error('Invalid JSON response from server');
+    }
   } catch (error) {
     console.error('Error calling OpenAI proxy:', error);
     throw error;
@@ -51,6 +69,7 @@ const callOpenAIProxy = async (endpoint: string, method: string = 'POST', payloa
 // Create a new thread for the conversation
 export const createThread = async (): Promise<any> => {
   try {
+    console.log('Creating new thread');
     return await callOpenAIProxy('threads');
   } catch (error) {
     console.error('Error creating thread:', error);
@@ -61,6 +80,7 @@ export const createThread = async (): Promise<any> => {
 // Add a message to the thread
 export const addMessageToThread = async (threadId: string, content: string): Promise<any> => {
   try {
+    console.log(`Adding message to thread: ${threadId}`);
     return await callOpenAIProxy(`threads/${threadId}/messages`, 'POST', {
       role: 'user',
       content,
@@ -74,6 +94,7 @@ export const addMessageToThread = async (threadId: string, content: string): Pro
 // Run the assistant on the thread
 export const runAssistant = async (threadId: string): Promise<any> => {
   try {
+    console.log(`Running assistant on thread: ${threadId}`);
     return await callOpenAIProxy(`threads/${threadId}/runs`, 'POST', {
       assistant_id: '{assistant_id}', // This will be replaced in the serverless function
     });
@@ -86,6 +107,7 @@ export const runAssistant = async (threadId: string): Promise<any> => {
 // Check the status of a run
 export const checkRunStatus = async (threadId: string, runId: string): Promise<any> => {
   try {
+    console.log(`Checking run status for run: ${runId} in thread: ${threadId}`);
     return await callOpenAIProxy(`threads/${threadId}/runs/${runId}`, 'GET');
   } catch (error) {
     console.error('Error checking run status:', error);
@@ -96,6 +118,7 @@ export const checkRunStatus = async (threadId: string, runId: string): Promise<a
 // Get all messages from a thread
 export const getThreadMessages = async (threadId: string): Promise<any> => {
   try {
+    console.log(`Getting messages from thread: ${threadId}`);
     return await callOpenAIProxy(`threads/${threadId}/messages`, 'GET');
   } catch (error) {
     console.error('Error getting thread messages:', error);
@@ -110,6 +133,7 @@ export const waitForRunCompletion = async (threadId: string, runId: string): Pro
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const runStatus = await checkRunStatus(threadId, runId);
+    console.log(`Run status (attempt ${attempt + 1}): ${runStatus.status}`);
     
     if (runStatus.status === 'completed') {
       return runStatus;
