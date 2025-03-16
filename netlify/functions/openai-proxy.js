@@ -10,10 +10,12 @@ exports.handler = async function(event, context) {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json'
   };
 
   // Handle OPTIONS request for CORS preflight
   if (event.httpMethod === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return {
       statusCode: 200,
       headers,
@@ -22,19 +24,23 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    // Log the incoming request for debugging
-    console.log('Received request:', {
-      method: event.httpMethod,
+    // Log detailed information about the request
+    console.log('Netlify Function Invoked:', {
+      httpMethod: event.httpMethod,
       path: event.path,
-      headers: event.headers,
+      headers: JSON.stringify(event.headers),
+      queryStringParameters: event.queryStringParameters,
+      body: event.body ? 'Present' : 'Empty',
+      isBase64Encoded: event.isBase64Encoded
     });
 
     // Parse the request body
     let body;
     try {
       body = JSON.parse(event.body || '{}');
+      console.log('Parsed request body:', JSON.stringify(body));
     } catch (error) {
-      console.error('Failed to parse request body:', error);
+      console.error('Failed to parse request body:', error, 'Raw body:', event.body);
       return {
         statusCode: 400,
         headers,
@@ -45,6 +51,7 @@ exports.handler = async function(event, context) {
     const { endpoint, method, payload } = body;
 
     if (!endpoint) {
+      console.error('Missing endpoint parameter');
       return {
         statusCode: 400,
         headers,
@@ -73,6 +80,12 @@ exports.handler = async function(event, context) {
     // Get API key from environment variables
     const openAiApiKey = process.env.OPENAI_API_KEY;
     const assistantId = process.env.OPENAI_ASSISTANT_ID;
+
+    console.log('Environment check:', { 
+      hasApiKey: !!openAiApiKey, 
+      hasAssistantId: !!assistantId,
+      nodeEnv: process.env.NODE_ENV
+    });
 
     if (!openAiApiKey) {
       console.error('API key not configured on server');
@@ -123,6 +136,8 @@ exports.handler = async function(event, context) {
     
     try {
       responseBody = await response.json();
+      console.log('OpenAI response status:', response.status);
+      console.log('OpenAI response headers:', JSON.stringify(Object.fromEntries([...response.headers.entries()])));
     } catch (error) {
       console.error('Failed to parse OpenAI response:', error);
       const rawText = await response.text();

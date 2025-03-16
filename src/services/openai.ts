@@ -1,4 +1,3 @@
-
 // This file now uses a Netlify function proxy for OpenAI API calls
 // No API keys are stored or used in the client code
 

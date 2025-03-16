@@ -1,5 +1,4 @@
 
-
 # Setting up Environment Variables in Netlify
 
 To properly deploy this site on Netlify, you need to set up the following environment variables in your Netlify project:
@@ -41,4 +40,3 @@ If the site builds but the chat doesn't work:
 2. Verify that the Netlify function is being called correctly (you should see network requests to /.netlify/functions/openai-proxy)
 3. Ensure CORS is properly configured
 4. Check the Netlify function logs in the Netlify dashboard
-
