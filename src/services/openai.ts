@@ -1,3 +1,4 @@
+
 // This file now uses a Netlify function proxy for OpenAI API calls
 // No API keys are stored or used in the client code
 
@@ -19,6 +20,33 @@ const formatMarkdownToHTML = (text: string): string => {
   formattedText = formattedText.replace(/`(.*?)`/g, '<span class="inline-code">$1</span>');
   
   return formattedText;
+};
+
+// Function to warm up the Netlify function to reduce cold start
+export const warmupFunction = async (): Promise<boolean> => {
+  try {
+    console.log('Sending warm-up ping to serverless function');
+    const apiUrl = `/.netlify/functions/openai-proxy?health=check`;
+    
+    const startTime = Date.now();
+    const response = await fetch(apiUrl);
+    const endTime = Date.now();
+    
+    const responseTime = endTime - startTime;
+    console.log(`Function warm-up response time: ${responseTime}ms`);
+    
+    if (!response.ok) {
+      console.warn('Warm-up ping failed with status:', response.status);
+      return false;
+    }
+    
+    const data = await response.json();
+    console.log('Warm-up ping response:', data);
+    return true;
+  } catch (error) {
+    console.error('Error warming up function:', error);
+    return false;
+  }
 };
 
 // Function to call our Netlify serverless function

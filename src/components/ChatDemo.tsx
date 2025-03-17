@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   createThread, 
   processUserMessage,
-  hasApiKey
+  hasApiKey,
+  warmupFunction
 } from '@/services/openai';
 
 interface Message {
@@ -28,6 +30,7 @@ const ChatDemo = () => {
   const [shakeInput, setShakeInput] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
+  const [isFunctionWarming, setIsFunctionWarming] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,20 +41,50 @@ const ChatDemo = () => {
   }, [messages]);
 
   useEffect(() => {
-    initializeThread();
+    // Warm up the function before initializing the thread
+    warmupAndInitialize();
   }, []);
 
-  const initializeThread = async () => {
+  // Periodically warm up the function to prevent cold starts
+  useEffect(() => {
+    // Initial warmup
+    warmupFunction().then(success => {
+      setIsFunctionWarming(false);
+      console.log('Initial warmup completed:', success);
+    });
+
+    // Set up periodic warmup
+    const intervalId = setInterval(() => {
+      warmupFunction().catch(err => {
+        console.warn('Background warmup failed:', err);
+      });
+    }, 4 * 60 * 1000); // Every 4 minutes (less than Netlify's 5-min timeout)
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const warmupAndInitialize = async () => {
     setIsInitializing(true);
     setInitError(null);
+    setIsFunctionWarming(true);
     
     try {
+      // First warm up the function
+      const isWarm = await warmupFunction();
+      setIsFunctionWarming(false);
+      
+      if (!isWarm) {
+        console.warn('Function may be cold - proceeding with initialization anyway');
+      }
+      
+      // Then initialize the thread
       const thread = await createThread();
       setThreadId(thread.id);
       setIsInitializing(false);
     } catch (error) {
-      console.error('Failed to create thread:', error);
+      console.error('Failed to initialize chat:', error);
       setIsInitializing(false);
+      setIsFunctionWarming(false);
       
       if (error instanceof Error) {
         setInitError(error.message);
@@ -159,6 +192,20 @@ const ChatDemo = () => {
   };
 
   const renderInitializationState = () => {
+    if (isFunctionWarming) {
+      return (
+        <div className="flex-1 p-6 flex flex-col items-center justify-center">
+          <div className="w-full max-w-md text-center">
+            <Loader2 className="w-10 h-10 text-cinema-red mx-auto mb-4 animate-spin" />
+            <h3 className="text-xl font-bold mb-2">Warming Up</h3>
+            <p className="text-white/70">
+              Just a moment while we warm up the AI system...
+            </p>
+          </div>
+        </div>
+      );
+    }
+    
     if (isInitializing) {
       return (
         <div className="flex-1 p-6 flex flex-col items-center justify-center">
@@ -187,7 +234,7 @@ const ChatDemo = () => {
               {initError}
             </p>
             <Button 
-              onClick={initializeThread}
+              onClick={warmupAndInitialize}
               className="bg-cinema-red hover:bg-cinema-red/90"
             >
               Retry Connection
@@ -224,7 +271,7 @@ const ChatDemo = () => {
               </div>
             </div>
             
-            {isInitializing || initError ? (
+            {isFunctionWarming || isInitializing || initError ? (
               renderInitializationState()
             ) : (
               <ScrollArea 
@@ -299,11 +346,11 @@ const ChatDemo = () => {
                   onClick={handleInputFocus}
                   placeholder="Ask for a movie recommendation..."
                   className={`w-full bg-white/5 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-cinema-red/50 transition-all ${shakeInput ? 'animate-shake' : ''}`}
-                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || isInitializing || !!initError}
+                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || isInitializing || isFunctionWarming || !!initError}
                 />
                 <Button 
                   type="submit" 
-                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || isInitializing || !!initError}
+                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || isInitializing || isFunctionWarming || !!initError}
                   className="bg-cinema-red hover:bg-cinema-red/90 text-white p-3 rounded-lg h-full"
                 >
                   <Send className="w-5 h-5" />

@@ -14,6 +14,16 @@ For security, we've moved the OpenAI API calls to a Netlify serverless function 
    - `OPENAI_API_KEY`: Your OpenAI API key
    - `OPENAI_ASSISTANT_ID`: Your OpenAI Assistant ID (format: asst_xxxxxxxxxxxxxxxxxxxxxxxx)
 
+## Function Warm-up Configuration
+
+This project includes a function warm-up mechanism to prevent cold starts:
+
+- `warm-function.js`: A scheduled function that runs every 5 minutes to keep the OpenAI proxy function warm
+- `openai-proxy.js`: Contains a health check endpoint that responds quickly without making OpenAI API calls
+- Client-side warm-up: The app also sends a warm-up request when it loads and at regular intervals
+
+The warm-up configuration is already set up in `netlify.toml`. No additional configuration is needed.
+
 ## Important Notes
 
 - The environment variables are now only used in the serverless function, not in the client-side code

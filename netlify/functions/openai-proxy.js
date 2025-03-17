@@ -23,6 +23,20 @@ exports.handler = async function(event, context) {
     };
   }
 
+  // Simple health check endpoint for warm-up pings
+  if (event.path.endsWith('/health') || event.queryStringParameters?.health === 'check') {
+    console.log('Received health check ping');
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        status: 'ok', 
+        message: 'Function is warm and ready',
+        timestamp: new Date().toISOString()
+      }),
+    };
+  }
+
   try {
     // Log detailed information about the request
     console.log('Netlify Function Invoked:', {

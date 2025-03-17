@@ -22,3 +22,9 @@
   port = 8888
   targetPort = 8080
   framework = "#custom"
+
+# Schedule the warm-function to run every 5 minutes to prevent cold starts
+[[functions]]
+  name = "warm-function"
+  schedule = "*/5 * * * *"
+
