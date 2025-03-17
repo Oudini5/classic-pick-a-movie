@@ -23,8 +23,5 @@
   targetPort = 8080
   framework = "#custom"
 
-# Schedule the warm-function to run every 5 minutes to prevent cold starts
-[[functions]]
-  name = "warm-function"
-  schedule = "*/5 * * * *"
-
+# Note: Instead of using [[functions]] for scheduling,
+# use Netlify's scheduling plugin or external service
