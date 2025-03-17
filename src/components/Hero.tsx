@@ -74,7 +74,7 @@ const Hero = () => {
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight tracking-tight">
           <span className="heading-gradient block mb-2">Classic Sh*t</span>
           <span className="text-shimmer block text-3xl md:text-4xl lg:text-5xl">
-            Let the AI pick your movie tonight!
+            Let AI pick your movie tonight!
           </span>
         </h1>
         

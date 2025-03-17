@@ -9,11 +9,10 @@ import { Toaster } from '@/components/ui/sonner';
 
 const Index = () => {
   useEffect(() => {
-    // Upload the logo to public folder
-    const logoPath = '/lovable-uploads/0b150639-d45b-4146-8a3a-b65b67bf60bd.png';
+    // Set favicon to the Classic Shit logo
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement || document.createElement('link');
     link.rel = 'icon';
-    link.href = logoPath;
+    link.href = '/lovable-uploads/0b150639-d45b-4146-8a3a-b65b67bf60bd.png';
     document.head.appendChild(link);
   }, []);
 
