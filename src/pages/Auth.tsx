@@ -24,9 +24,9 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect if already logged in
+    // Redirect if already logged in - go to chat instead of home
     if (user) {
-      navigate('/');
+      navigate('/chat');
     }
   }, [user, navigate]);
 
@@ -53,7 +53,7 @@ const Auth = () => {
     const { error } = await signIn(loginForm.email, loginForm.password);
     
     if (!error) {
-      navigate('/');
+      navigate('/chat'); // Redirect to chat page after successful login
     }
     
     setIsLoading(false);

@@ -101,7 +101,7 @@ const ChatDemo = () => {
 
   const getMessageLimit = () => {
     if (!user) return 3; // Free limit for non-authenticated users
-    return profile?.role === 'free' ? 3 : 100; // Authenticated limits
+    return profile?.role === 'free' ? 10 : 100; // Updated: Free users get 10 messages per day
   };
 
   const getCurrentMessageCount = () => {
