@@ -4,6 +4,7 @@ import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   createThread, 
   processUserMessage,
@@ -18,13 +19,10 @@ interface Message {
   timestamp: Date;
 }
 
-const MAX_FREE_MESSAGES = 3;
-
 const ChatDemo = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [messageCount, setMessageCount] = useState(0);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [shakeInput, setShakeInput] = useState(false);
@@ -35,30 +33,27 @@ const ChatDemo = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user, profile, incrementMessageCount } = useAuth();
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
-    // Warm up the function before initializing the thread
     warmupAndInitialize();
   }, []);
 
-  // Periodically warm up the function to prevent cold starts
   useEffect(() => {
-    // Initial warmup
     warmupFunction().then(success => {
       setIsFunctionWarming(false);
       console.log('Initial warmup completed:', success);
     });
 
-    // Set up periodic warmup
     const intervalId = setInterval(() => {
       warmupFunction().catch(err => {
         console.warn('Background warmup failed:', err);
       });
-    }, 4 * 60 * 1000); // Every 4 minutes (less than Netlify's 5-min timeout)
+    }, 4 * 60 * 1000);
 
     return () => clearInterval(intervalId);
   }, []);
@@ -69,7 +64,6 @@ const ChatDemo = () => {
     setIsFunctionWarming(true);
     
     try {
-      // First warm up the function
       const isWarm = await warmupFunction();
       setIsFunctionWarming(false);
       
@@ -77,7 +71,6 @@ const ChatDemo = () => {
         console.warn('Function may be cold - proceeding with initialization anyway');
       }
       
-      // Then initialize the thread
       const thread = await createThread();
       setThreadId(thread.id);
       setIsInitializing(false);
@@ -106,12 +99,28 @@ const ChatDemo = () => {
     }
   };
 
+  const getMessageLimit = () => {
+    if (!user) return 3; // Free limit for non-authenticated users
+    return profile?.role === 'free' ? 3 : 100; // Authenticated limits
+  };
+
+  const getCurrentMessageCount = () => {
+    if (!user) return messages.filter(m => m.sender === 'user').length;
+    return profile?.messages_today || 0;
+  };
+
+  const canSendMessage = () => {
+    const limit = getMessageLimit();
+    const count = getCurrentMessageCount();
+    return count < limit;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!inputValue.trim()) return;
     
-    if (messageCount >= MAX_FREE_MESSAGES) {
+    if (!canSendMessage()) {
       triggerShakeEffect();
       setShowLimitModal(true);
       return;
@@ -136,11 +145,14 @@ const ChatDemo = () => {
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
-    setMessageCount(prev => prev + 1);
+    
+    // Increment message count for authenticated users
+    if (user && profile) {
+      await incrementMessageCount();
+    }
     
     try {
       const assistantMessage = await processUserMessage(threadId, inputValue);
-      
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error processing message:', error);
@@ -170,7 +182,7 @@ const ChatDemo = () => {
   };
 
   const handleInputFocus = () => {
-    if (messageCount >= MAX_FREE_MESSAGES) {
+    if (!canSendMessage()) {
       triggerShakeEffect();
       setShowLimitModal(true);
       inputRef.current?.blur();
@@ -181,14 +193,13 @@ const ChatDemo = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const handleWaitlistJoin = () => {
+  const handleAuthAction = () => {
     setShowLimitModal(false);
-    toast({
-      title: "Redirecting to waitlist",
-      description: "Taking you to the waitlist form",
-    });
-    
-    document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
+    if (!user) {
+      window.location.href = '/auth';
+    } else {
+      document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const renderInitializationState = () => {
@@ -247,6 +258,10 @@ const ChatDemo = () => {
     return null;
   };
 
+  const messageLimit = getMessageLimit();
+  const currentCount = getCurrentMessageCount();
+  const remainingMessages = Math.max(0, messageLimit - currentCount);
+
   return (
     <section id="demo" className="py-20 relative overflow-hidden">
       <div className="container mx-auto">
@@ -254,7 +269,10 @@ const ChatDemo = () => {
           <h2 className="text-3xl font-bold heading-gradient mb-4">Try the AI Movie Picker</h2>
           <p className="text-white/70 max-w-2xl mx-auto">
             Ask for movie recommendations based on genre, mood, or specific preferences.
-            Try a few queries for free, then join our waitlist for unlimited access.
+            {user ? 
+              `You have ${remainingMessages} messages remaining today.` :
+              'Try a few queries for free, then sign in for more.'
+            }
           </p>
         </div>
         
@@ -267,7 +285,8 @@ const ChatDemo = () => {
                 <h3 className="text-sm font-medium">Classic Sh*t AI</h3>
               </div>
               <div className="text-xs text-white/50">
-                {MAX_FREE_MESSAGES - messageCount} free messages left
+                {remainingMessages} messages left
+                {user && profile && profile.role === 'free' && ' (free tier)'}
               </div>
             </div>
             
@@ -346,11 +365,11 @@ const ChatDemo = () => {
                   onClick={handleInputFocus}
                   placeholder="Ask for a movie recommendation..."
                   className={`w-full bg-white/5 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-cinema-red/50 transition-all ${shakeInput ? 'animate-shake' : ''}`}
-                  disabled={isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || isInitializing || isFunctionWarming || !!initError}
+                  disabled={isLoading || !canSendMessage() || !threadId || isInitializing || isFunctionWarming || !!initError}
                 />
                 <Button 
                   type="submit" 
-                  disabled={!inputValue.trim() || isLoading || messageCount >= MAX_FREE_MESSAGES || !threadId || isInitializing || isFunctionWarming || !!initError}
+                  disabled={!inputValue.trim() || isLoading || !canSendMessage() || !threadId || isInitializing || isFunctionWarming || !!initError}
                   className="bg-cinema-red hover:bg-cinema-red/90 text-white p-3 rounded-lg h-full"
                 >
                   <Send className="w-5 h-5" />
@@ -361,10 +380,26 @@ const ChatDemo = () => {
         </div>
         
         <div className="text-center mt-10">
-          <p className="text-white/70 mb-4">Want unlimited AI movie recommendations?</p>
-          <a href="#waitlist" className="btn-primary">
-            Join the Waitlist
-          </a>
+          <p className="text-white/70 mb-4">
+            {user ? 
+              'Want unlimited AI movie recommendations?' :
+              'Sign in for more messages or join our waitlist for unlimited access!'
+            }
+          </p>
+          {user ? (
+            <a href="#waitlist" className="btn-primary">
+              Upgrade Account
+            </a>
+          ) : (
+            <div className="flex justify-center gap-4">
+              <a href="/auth" className="btn-secondary">
+                Sign In
+              </a>
+              <a href="#waitlist" className="btn-primary">
+                Join Waitlist
+              </a>
+            </div>
+          )}
         </div>
       </div>
       
@@ -374,14 +409,17 @@ const ChatDemo = () => {
             <div className="p-6">
               <h3 className="text-xl font-bold mb-2">Message Limit Reached</h3>
               <p className="text-white/70 mb-6">
-                You've used all your free messages! Join our waitlist to get early access to unlimited AI movie recommendations.
+                {user ? 
+                  "You've reached your daily message limit. Join our waitlist to get early access to unlimited AI movie recommendations." :
+                  "You've used all your free messages! Sign in for more messages or join our waitlist for unlimited access."
+                }
               </p>
               <div className="flex gap-3">
                 <button
-                  onClick={handleWaitlistJoin}
+                  onClick={handleAuthAction}
                   className="btn-primary flex-1"
                 >
-                  Join Waitlist
+                  {user ? 'Join Waitlist' : 'Sign In'}
                 </button>
                 <button
                   onClick={() => setShowLimitModal(false)}
