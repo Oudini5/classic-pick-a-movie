@@ -24,11 +24,11 @@ const Chat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-cinema-bg text-white">
+    <div className="min-h-screen bg-cinema-bg text-white flex flex-col">
       <div className="film-grain"></div>
       
       {/* Header for chat page */}
-      <header className="border-b border-white/10 bg-black/80 backdrop-blur-md">
+      <header className="border-b border-white/10 bg-black/80 backdrop-blur-md flex-shrink-0">
         <div className="container mx-auto py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="relative overflow-hidden rounded-full p-0.5 bg-gradient-to-r from-cinema-red to-cinema-red/70">
@@ -63,16 +63,20 @@ const Chat = () => {
         </div>
       </header>
 
-      {/* Full-screen chat interface */}
-      <div className="container mx-auto py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold heading-gradient mb-4">AI Movie Picker</h1>
-          <p className="text-white/70 max-w-2xl mx-auto">
-            Get personalized movie recommendations from our AI assistant.
-          </p>
+      {/* Full-screen chat interface - removed footer for full viewport height */}
+      <div className="flex-1 flex flex-col">
+        <div className="container mx-auto py-8 flex-1 flex flex-col">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold heading-gradient mb-4">AI Movie Picker</h1>
+            <p className="text-white/70 max-w-2xl mx-auto">
+              Get personalized movie recommendations from our AI assistant.
+            </p>
+          </div>
+          
+          <div className="flex-1">
+            <ChatDemo />
+          </div>
         </div>
-        
-        <ChatDemo />
       </div>
     </div>
   );

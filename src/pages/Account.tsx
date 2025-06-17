@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Film, LogOut, User, MessageSquare, Crown } from 'lucide-react';
+import { Film, LogOut, User, MessageSquare, Crown, ArrowLeft } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -60,15 +60,54 @@ const Account = () => {
     );
   }
 
-  const messageLimit = profile.role === 'free' ? 3 : 100;
+  const messageLimit = profile.role === 'free' ? 10 : 100;
   const messageProgress = (profile.messages_today / messageLimit) * 100;
 
   return (
     <div className="min-h-screen bg-cinema-bg text-white">
       <div className="film-grain"></div>
-      <Header />
       
-      <div className="container mx-auto px-4 py-28">
+      {/* Updated Header with Back to Chat button */}
+      <header className="border-b border-white/10 bg-black/80 backdrop-blur-md">
+        <div className="container mx-auto py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={() => navigate('/chat')}
+              variant="outline"
+              size="sm"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Chat
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <div className="relative overflow-hidden rounded-full p-0.5 bg-gradient-to-r from-cinema-red to-cinema-red/70">
+                <div className="bg-black rounded-full p-1">
+                  <Film className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <span className="text-xl font-bold tracking-tight">
+                <span className="text-white">classic</span>
+                <span className="text-cinema-red">shit.com</span>
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={() => navigate('/')}
+              variant="outline"
+              size="sm"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Home
+            </Button>
+          </div>
+        </div>
+      </header>
+      
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-4">
