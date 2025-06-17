@@ -428,6 +428,8 @@ const Chat = () => {
                 <button
                   onClick={() => setShowLimitModal(false)}
                   className="btn-secondary flex-1"
+                >
+                  Cancel
                 </button>
               </div>
             </div>
